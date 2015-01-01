@@ -260,6 +260,8 @@ bool PyController::checkRunning()
 
 	//cerr << "Fork successful" << endl;
 
+	startupMessage();
+
 	if (m_pythonPID == 0) // In this case, we're in the child process
 	{
 		// close default stdin and replace with our pipe
@@ -279,8 +281,6 @@ bool PyController::checkRunning()
 		// -u is for unbuffered output, so you don't need to flush stdout to get
 		// the result of a print command
 		char *argv[] = { pExec, "-u", pScript, resultDesc, 0 };
-
-		startupMessage();
 
 		if (execvp(pExec, argv) < 0) // environ is a global variable
 		{
