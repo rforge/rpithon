@@ -24,6 +24,7 @@ extern "C"
 	void py_exec_code(const char** code, const char **instancename, int* exit_status, char **message);
 	void py_get_var(const char** var_name, const char **instancename, int* found, char** resultado);
 	void py_set_exec(const char** executable, const char **instancename);
+	void py_set_default_exec(const char** executable);
 }
 
 void py_init(const char **script)
@@ -63,6 +64,12 @@ void py_set_exec(const char** executable, const char **instancename)
 		PyController *pPyController = getNamedInstance(name);
 		pPyController->setPythonExecutable(*executable);
 	}
+}
+
+void py_set_default_exec(const char** executable)
+{
+	if (*executable)
+		PyController::setDefaultPythonExecutable(*executable);
 }
 
 void py_close()

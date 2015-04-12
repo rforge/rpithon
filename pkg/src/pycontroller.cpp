@@ -10,6 +10,7 @@
 
 #ifdef _WIN32
 #include <strsafe.h>
+#include <io.h>
 #else
 #include <unistd.h>
 #include <sys/wait.h>
@@ -22,6 +23,8 @@ using namespace std;
 #define CMD_EXEC 1
 #define CMD_GETVAR 2
 #define SCRIPTIDENTIFIER "RPITHON"
+
+std::string PyController::s_defaultPythonExecutable = "python";
 
 void PyController::startupMessage()
 {
@@ -36,7 +39,7 @@ void PyController::startupMessage()
 #ifdef _WIN32
 PyController::PyController(const string &identifier) : m_identifier(identifier)
 {
-	m_pythonExecutable = "python";
+	m_pythonExecutable = s_defaultPythonExecutable;
 	m_scriptPath = "pythonwrapperscript.py";
 	m_hStdinPipe[0] = 0;
 	m_hStdinPipe[1] = 0;
@@ -127,10 +130,12 @@ bool PyController::checkRunning()
 
 	startInfo.cb = sizeof(STARTUPINFO);
 	startInfo.dwFlags |= STARTF_USESTDHANDLES;
-	startInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-	startInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+	//startInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+	//startInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+	startInfo.hStdOutput = (HANDLE)_get_osfhandle(fileno(stdout));
+	startInfo.hStdError = (HANDLE)_get_osfhandle(fileno(stderr));
 	startInfo.hStdInput = m_hStdinPipe[0];
-	
+
 	char execStr[BUFLEN];
 	// -u is for unbuffered output, so you don't need to flush stdout to get
 	// the result of a print command
@@ -199,7 +204,7 @@ void PyController::writeCommand(int cmd, const void *pData, int dataLen)
 
 PyController::PyController(const string &identifier) : m_identifier(identifier)
 {
-	m_pythonExecutable = "python";
+	m_pythonExecutable = s_defaultPythonExecutable;
 	m_scriptPath = "pythonwrapperscript.py";
 	m_stdinPipe[0] = -1;
 	m_stdinPipe[1] = -1;
@@ -351,7 +356,7 @@ bool PyController::exec(const std::string &code)
 
 	if (sscanf(line.c_str(), "%d,%d", &resultCode, &resultLength) != 2)
 	{
-		setErrorString("Internal error: bad result line");
+		setErrorString("Internal error: bad result line: " + line);
 		return false;
 	}
 
@@ -410,7 +415,7 @@ bool PyController::getVariable(const std::string &name, std::vector<uint8_t> &va
 
 	if (sscanf(line.c_str(), "%d,%d", &resultCode, &resultLength) != 2)
 	{
-		setErrorString("Internal error: bad result line");
+		setErrorString("Internal error: bad result line: " + line);
 		return false;
 	}
 
@@ -485,12 +490,7 @@ bool PyController::readLine(string &line)
 	}
 	//cout << "Done." << endl;
 
-	size_t len = result.length();
-	if (len > 0 && result[len-1] == '\r')
-		line = result.substr(0, len-1);
-	else
-		line = result;
-	
+	line = result;
 	return true;
 }
 
